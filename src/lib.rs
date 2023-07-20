@@ -4,6 +4,18 @@ use std::vec::Vec;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct BinarySet<T>(Vec<T>);
 
+impl<T> Into<Vec<T>> for BinarySet<T> {
+    fn into(self) -> Vec<T> {
+        self.0
+    }
+}
+
+impl<T> Clear for BinarySet<T> {
+    fn clear(&mut self) {
+        self.0.clear()
+    }
+}
+
 impl<T> AsRef<Vec<T>> for BinarySet<T> {
     fn as_ref(&self) -> &Vec<T> {
         &self.0
@@ -13,7 +25,8 @@ impl<T> AsRef<Vec<T>> for BinarySet<T> {
 impl<T: Ord + PartialOrd + Eq + PartialEq> Extend<T> for BinarySet<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         self.0.extend(iter);
-        self.0.sort() //TODO performance
+        self.0.sort(); //TODO performance
+        self.0.dedup();
     }
 }
 
@@ -23,6 +36,7 @@ impl<T: Ord + PartialOrd + Eq + PartialEq> FromIterator<T> for BinarySet<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut vec: Vec<T> = Vec::from_iter(iter);
         vec.sort();
+        vec.dedup();
 
         Self(vec)
     }
@@ -115,7 +129,7 @@ pub mod tests {
 
     #[test]
     pub fn len() {
-        let set = BinarySet::from_iter([1, 2, 3]);
+        let set = BinarySet::from_iter([1, 2, 3, 2]);
         assert_eq!(set.len(), 3)
     }
 
@@ -150,7 +164,7 @@ pub mod tests {
     #[test]
     pub fn extend() {
         let mut set = BinarySet::from_iter([2, 4, 6, 8]);
-        set.extend([1, 3, 5, 7, 9]);
+        set.extend([1,2, 3,4, 5, 7, 9]);
 
         assert_eq!(set.as_ref(), &vec![1, 2, 3, 4, 5, 6, 7, 8, 9])
     }
@@ -172,4 +186,16 @@ pub mod tests {
 
         assert_eq!(set.as_ref(), &vec![1, 3])
     }
+    
+    #[test]
+    pub fn clear() {
+        let mut set = BinarySet::from_iter([1, 2, 3]);
+        
+        set.clear();
+        let into_vec :Vec<i32> = set.into();
+
+        assert_eq!(into_vec, vec![])
+    }
+
+
 }
