@@ -4,6 +4,61 @@ use std::vec::Vec;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct BinarySet<T>(Vec<T>);
 
+impl<T: Ord + PartialOrd + Eq + PartialEq> BinarySet<T> {
+    pub fn extend_fast<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        let mut before_new_elements = self.0.len();
+        self.0.extend(iter);
+
+        let (old_slice, new_slice) = self.0.split_at_mut(before_new_elements);
+        new_slice.sort();
+        let Some(first) = new_slice.first() else{return;};
+        //let Some(last) = p_slice.last() else{return;};
+        let mut duplicates = false;
+        let mut new_elements = new_slice.len();
+        let first_index = match old_slice.binary_search(first) {
+            Ok(i) => {
+                duplicates = true;
+                i
+            }
+            Err(i) => i,
+        };
+
+        while new_elements > 0 {
+            let (before, new_and_after) = self.0.split_at_mut(before_new_elements);
+            let to_insert = new_and_after.get(new_elements - 1).unwrap();
+            let index_to_insert = match before[first_index..].binary_search(to_insert) {
+                Ok(i) => {
+                    duplicates = true;
+                    i
+                }
+                Err(i) => i,
+            };
+
+            if before_new_elements != index_to_insert {
+                let slice_to_rotate =
+                    &mut self.0[index_to_insert..before_new_elements + new_elements];
+                slice_to_rotate.rotate_right(new_elements); //todo don't rotate if it would do nothing
+                before_new_elements = index_to_insert;
+            }
+
+            new_elements -= 1;
+        }
+
+        if duplicates {
+            self.0.dedup()
+        }
+    }
+}
+
+impl<T: Ord + PartialOrd + Eq + PartialEq> Extend<T> for BinarySet<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        self.extend_fast(iter);
+        // self.0.extend(iter);
+        // self.0.sort(); //TODO performance
+        // self.0.dedup();
+    }
+}
+
 impl<T> Into<Vec<T>> for BinarySet<T> {
     fn into(self) -> Vec<T> {
         self.0
@@ -19,14 +74,6 @@ impl<T> Clear for BinarySet<T> {
 impl<T> AsRef<Vec<T>> for BinarySet<T> {
     fn as_ref(&self) -> &Vec<T> {
         &self.0
-    }
-}
-
-impl<T: Ord + PartialOrd + Eq + PartialEq> Extend<T> for BinarySet<T> {
-    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        self.0.extend(iter);
-        self.0.sort(); //TODO performance
-        self.0.dedup();
     }
 }
 
@@ -164,7 +211,7 @@ pub mod tests {
     #[test]
     pub fn extend() {
         let mut set = BinarySet::from_iter([2, 4, 6, 8]);
-        set.extend([1,2, 3,4, 5, 7, 9]);
+        set.extend([1, 2, 3, 4, 5, 7, 9]);
 
         assert_eq!(set.as_ref(), &vec![1, 2, 3, 4, 5, 6, 7, 8, 9])
     }
@@ -186,16 +233,14 @@ pub mod tests {
 
         assert_eq!(set.as_ref(), &vec![1, 3])
     }
-    
+
     #[test]
     pub fn clear() {
         let mut set = BinarySet::from_iter([1, 2, 3]);
-        
+
         set.clear();
-        let into_vec :Vec<i32> = set.into();
+        let into_vec: Vec<i32> = set.into();
 
         assert_eq!(into_vec, vec![])
     }
-
-
 }
