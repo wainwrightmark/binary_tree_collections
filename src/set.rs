@@ -5,15 +5,39 @@ use std::vec::Vec;
 pub struct BinarySet<T>(Vec<T>);
 
 impl<T: Ord + PartialOrd + Eq + PartialEq> BinarySet<T> {
-    pub fn extend_fast<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+
+    pub fn extend_with_inserts<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for item in iter{
+            match self.0.binary_search(&item){
+                Ok(_) => {
+                    //already exists - do nothing
+                }
+                Err(index) => self.0.insert(index, item),
+            }
+            
+        }
+    }
+
+    pub fn extend_with_rotates<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         let mut before_new_elements = self.0.len();
         self.0.extend(iter);
 
         let (old_slice, new_slice) = self.0.split_at_mut(before_new_elements);
         new_slice.sort();
         let Some(first) = new_slice.first() else{return;};
-        //let Some(last) = p_slice.last() else{return;};
+
         let mut duplicates = false;
+
+        {
+            let mut current = first;
+            for x in new_slice.iter().skip(1) {
+                if x == current {
+                    duplicates = true;
+                    break;
+                }
+                current = x;
+            }
+        }
         let mut new_elements = new_slice.len();
         let first_index = match old_slice.binary_search(first) {
             Ok(i) => {
@@ -26,12 +50,16 @@ impl<T: Ord + PartialOrd + Eq + PartialEq> BinarySet<T> {
         while new_elements > 0 {
             let (before, new_and_after) = self.0.split_at_mut(before_new_elements);
             let to_insert = new_and_after.get(new_elements - 1).unwrap();
-            let index_to_insert = match before[first_index..].binary_search(to_insert) {
-                Ok(i) => {
-                    duplicates = true;
-                    i
+            let index_to_insert = if first_index >= before.len() {
+                before.len()
+            } else {
+                match before[first_index..].binary_search(to_insert) {
+                    Ok(i) => {
+                        duplicates = true;
+                        i
+                    }
+                    Err(i) => i,
                 }
-                Err(i) => i,
             };
 
             if before_new_elements != index_to_insert {
@@ -52,10 +80,9 @@ impl<T: Ord + PartialOrd + Eq + PartialEq> BinarySet<T> {
 
 impl<T: Ord + PartialOrd + Eq + PartialEq> Extend<T> for BinarySet<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        self.extend_fast(iter);
-        // self.0.extend(iter);
-        // self.0.sort(); //TODO performance
-        // self.0.dedup();
+        self.0.extend(iter);
+        self.0.sort();
+        self.0.dedup();
     }
 }
 
@@ -209,19 +236,43 @@ pub mod tests {
     }
 
     #[test]
+    pub fn extend_prepend() {
+        let mut set = BinarySet::from_iter([4, 5, 6]);
+        set.extend([1, 1, 2, 3, 3]);
+
+        assert_eq!(set.as_ref(), &vec![1, 2, 3, 4, 5, 6])
+    }
+
+    #[test]
+    pub fn extend_postpend() {
+        let mut set = BinarySet::from_iter([1]);
+        set.extend([2]);
+
+        assert_eq!(set.as_ref(), &vec![1, 2])
+    }
+
+    #[test]
+    pub fn extend_postpend2() {
+        let mut set = BinarySet::from_iter([1, 2, 3]);
+        set.extend([4, 4, 5, 6, 6]);
+
+        assert_eq!(set.as_ref(), &vec![1, 2, 3, 4, 5, 6])
+    }
+
+    #[test]
     pub fn extend_no_duplicates() {
         let mut set = BinarySet::from_iter([2, 4, 6, 8]);
-        set.extend([1,3, 5, 7, 9]);
+        set.extend([1, 3, 5, 7, 9]);
 
         assert_eq!(set.as_ref(), &vec![1, 2, 3, 4, 5, 6, 7, 8, 9])
     }
-    
+
     #[test]
     pub fn extend_with_duplicates() {
         let mut set = BinarySet::from_iter([2, 4, 6, 8]);
-        set.extend([ 2, 3, 4, 5, 7, 9]);
+        set.extend([2, 3, 4, 5, 7, 9]);
 
-        assert_eq!(set.as_ref(), &vec![ 2, 3, 4, 5, 6, 7, 8, 9])
+        assert_eq!(set.as_ref(), &vec![2, 3, 4, 5, 6, 7, 8, 9])
     }
 
     #[test]
@@ -243,7 +294,7 @@ pub mod tests {
     }
 
     #[test]
-    pub fn test_into(){
+    pub fn test_into() {
         let set = BinarySet::from_iter([1, 2, 3]);
         let into_vec: Vec<i32> = set.into();
         assert_eq!(into_vec, vec![1, 2, 3])

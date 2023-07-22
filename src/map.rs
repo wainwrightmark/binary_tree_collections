@@ -1,8 +1,9 @@
 use std::ops::{IndexMut, RangeBounds};
 
 use cc_traits::{
-    covariant_item_ref, Capacity, Clear, Collection, CollectionMut, CollectionRef, Get,
-    GetKeyValue, GetMut, Iter, Keyed, KeyedRef, Len, MapInsert, Remove, Reserve, WithCapacity, covariant_key_ref, covariant_item_mut,
+    covariant_item_mut, covariant_item_ref, covariant_key_ref, Capacity, Clear, Collection,
+    CollectionMut, CollectionRef, Get, GetKeyValue, GetMut, Iter, Keyed, KeyedRef, Len, MapInsert,
+    Remove, Reserve, WithCapacity,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
@@ -58,6 +59,10 @@ impl<K, V> BinaryMap<K, V> {
         &self.values
     }
 }
+
+// impl<K, V> Map<K, V> for BinaryMap<K, V>{
+
+// }
 
 impl<K, V> CollectionMut for BinaryMap<K, V> {
     type ItemMut<'a> = &'a mut V
@@ -115,14 +120,20 @@ impl<'a, K: Ord, V> Remove<&'a K> for BinaryMap<K, V> {
     }
 }
 
-impl<K: Ord, V> GetKeyValue<K> for BinaryMap<K, V> {
-    fn get_key_value(&self, key: K) -> Option<(Self::KeyRef<'_>, Self::ItemRef<'_>)> {
+impl<'a, K: Ord, V> GetKeyValue<&'a K> for BinaryMap<K, V> {
+    fn get_key_value(&self, key: &'a K) -> Option<(Self::KeyRef<'_>, Self::ItemRef<'_>)> {
         let index = self.keys.binary_search(&key).ok()?;
 
         let k = self.keys.get(index)?;
         let v = self.values.get(index)?;
 
         Some((k, v))
+    }
+}
+
+impl<K: Ord, V> GetKeyValue<K> for BinaryMap<K, V> {
+    fn get_key_value(&self, key: K) -> Option<(Self::KeyRef<'_>, Self::ItemRef<'_>)> {
+        self.get_key_value(&key)
     }
 }
 
@@ -230,15 +241,48 @@ pub mod tests {
     #[test]
     pub fn get_range() {
         let set = BinaryMap::from_iter([(1, 'a'), (2, 'b'), (3, 'c'), (4, 'd')]);
-        assert_eq!(set.range(2..=3).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['b','c']);
-        assert_eq!(set.range(2..4).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['b','c']);
-        assert_eq!(set.range((Bound::Excluded(1), Bound::Included(3))).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['b','c']);
-        assert_eq!(set.range(2..5).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['b','c', 'd']);
-        assert_eq!(set.range(2..=5).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['b','c', 'd']);
-        assert_eq!(set.range(2..).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['b','c','d']);
-        assert_eq!(set.range(..3).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['a', 'b']);
-        assert_eq!(set.range(-1..3).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['a', 'b']);
-        assert_eq!(set.range((Bound::Excluded(-1), Bound::Excluded(3))).map(|x|x.1).cloned().collect::<Vec<_>>(), vec!['a', 'b']);
+        assert_eq!(
+            set.range(2..=3).map(|x| x.1).cloned().collect::<Vec<_>>(),
+            vec!['b', 'c']
+        );
+        assert_eq!(
+            set.range(2..4).map(|x| x.1).cloned().collect::<Vec<_>>(),
+            vec!['b', 'c']
+        );
+        assert_eq!(
+            set.range((Bound::Excluded(1), Bound::Included(3)))
+                .map(|x| x.1)
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!['b', 'c']
+        );
+        assert_eq!(
+            set.range(2..5).map(|x| x.1).cloned().collect::<Vec<_>>(),
+            vec!['b', 'c', 'd']
+        );
+        assert_eq!(
+            set.range(2..=5).map(|x| x.1).cloned().collect::<Vec<_>>(),
+            vec!['b', 'c', 'd']
+        );
+        assert_eq!(
+            set.range(2..).map(|x| x.1).cloned().collect::<Vec<_>>(),
+            vec!['b', 'c', 'd']
+        );
+        assert_eq!(
+            set.range(..3).map(|x| x.1).cloned().collect::<Vec<_>>(),
+            vec!['a', 'b']
+        );
+        assert_eq!(
+            set.range(-1..3).map(|x| x.1).cloned().collect::<Vec<_>>(),
+            vec!['a', 'b']
+        );
+        assert_eq!(
+            set.range((Bound::Excluded(-1), Bound::Excluded(3)))
+                .map(|x| x.1)
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!['a', 'b']
+        );
     }
 
     #[test]
