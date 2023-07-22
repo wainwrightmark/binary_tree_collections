@@ -1,4 +1,4 @@
-use binaryset::*;
+use binaryset::set::*;
 use cc_traits::Len;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
