@@ -5,16 +5,14 @@ use std::vec::Vec;
 pub struct BinarySet<T>(Vec<T>);
 
 impl<T: Ord + PartialOrd + Eq + PartialEq> BinarySet<T> {
-
     pub fn extend_with_inserts<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        for item in iter{
-            match self.0.binary_search(&item){
+        for item in iter {
+            match self.0.binary_search(&item) {
                 Ok(_) => {
                     //already exists - do nothing
                 }
                 Err(index) => self.0.insert(index, item),
             }
-            
         }
     }
 
@@ -86,9 +84,9 @@ impl<T: Ord + PartialOrd + Eq + PartialEq> Extend<T> for BinarySet<T> {
     }
 }
 
-impl<T> Into<Vec<T>> for BinarySet<T> {
-    fn into(self) -> Vec<T> {
-        self.0
+impl<T> From<BinarySet<T>> for Vec<T> {
+    fn from(val: BinarySet<T>) -> Self {
+        val.0
     }
 }
 
@@ -160,7 +158,7 @@ impl<T: Ord + PartialOrd + Eq + PartialEq> Insert for BinarySet<T> {
 
 impl<'a, T: Ord + PartialOrd + Eq + PartialEq> Remove<&'a T> for BinarySet<T> {
     fn remove(&mut self, key: &'a T) -> Option<Self::Item> {
-        match self.0.binary_search(&key) {
+        match self.0.binary_search(key) {
             Ok(index) => Some(self.0.remove(index)),
             Err(_) => None,
         }
@@ -278,8 +276,8 @@ pub mod tests {
     #[test]
     pub fn insert() {
         let mut set = BinarySet::from_iter([2, 3]);
-        assert_eq!(set.insert(1), true);
-        assert_eq!(set.insert(2), false);
+        assert!(set.insert(1));
+        assert!(!set.insert(2));
 
         assert_eq!(set.as_ref(), &vec![1, 2, 3])
     }

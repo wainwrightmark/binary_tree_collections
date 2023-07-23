@@ -58,6 +58,15 @@ impl<K, V> BinaryMap<K, V> {
     pub const fn values(&self) -> &Vec<V> {
         &self.values
     }
+
+    pub fn into_keys(self) -> Vec<K>{
+        self.keys
+    }
+    
+    pub fn into_values(self) -> Vec<V>{
+        self.values
+    }
+
 }
 
 // impl<K, V> Map<K, V> for BinaryMap<K, V>{
@@ -74,7 +83,7 @@ impl<K, V> CollectionMut for BinaryMap<K, V> {
 
 impl<'a, K: Ord, V> GetMut<&'a K> for BinaryMap<K, V> {
     fn get_mut(&mut self, key: &'a K) -> Option<Self::ItemMut<'_>> {
-        let index = self.keys.binary_search(&key).ok()?;
+        let index = self.keys.binary_search(key).ok()?;
         self.values.get_mut(index)
     }
 }
@@ -87,7 +96,7 @@ impl<K: Ord, V> Get<K> for BinaryMap<K, V> {
 
 impl<'a, K: Ord, V> Get<&'a K> for BinaryMap<K, V> {
     fn get(&self, key: &'a K) -> Option<Self::ItemRef<'_>> {
-        let index = self.keys.binary_search(&key).ok()?;
+        let index = self.keys.binary_search(key).ok()?;
         self.values.get(index)
     }
 }
@@ -114,7 +123,7 @@ impl<K: Ord, V> MapInsert<K> for BinaryMap<K, V> {
 
 impl<'a, K: Ord, V> Remove<&'a K> for BinaryMap<K, V> {
     fn remove(&mut self, key: &'a K) -> Option<Self::Item> {
-        let index = self.keys.binary_search(&key).ok()?;
+        let index = self.keys.binary_search(key).ok()?;
         self.keys.remove(index);
         Some(self.values.remove(index))
     }
@@ -122,7 +131,7 @@ impl<'a, K: Ord, V> Remove<&'a K> for BinaryMap<K, V> {
 
 impl<'a, K: Ord, V> GetKeyValue<&'a K> for BinaryMap<K, V> {
     fn get_key_value(&self, key: &'a K) -> Option<(Self::KeyRef<'_>, Self::ItemRef<'_>)> {
-        let index = self.keys.binary_search(&key).ok()?;
+        let index = self.keys.binary_search(key).ok()?;
 
         let k = self.keys.get(index)?;
         let v = self.values.get(index)?;
